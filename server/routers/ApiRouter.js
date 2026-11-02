@@ -120,6 +120,8 @@ class ApiRouter {
     this.router.get('/items/:id/review', ReviewController.middleware.bind(this), ReviewController.getMine.bind(this))
     this.router.put('/items/:id/review', ReviewController.middleware.bind(this), ReviewController.saveMine.bind(this))
     this.router.delete('/items/:id/review', ReviewController.middleware.bind(this), ReviewController.deleteMine.bind(this))
+    // Fork addition: other users' ratings, reviews and progress on a book
+    this.router.get('/items/:id/reviews', ReviewController.middleware.bind(this), ReviewController.getOthers.bind(this))
 
     this.router.post('/items/:id/play', LibraryItemController.middleware.bind(this), LibraryItemController.startPlaybackSession.bind(this))
     this.router.post('/items/:id/play/:episodeId', LibraryItemController.middleware.bind(this), LibraryItemController.startEpisodePlaybackSession.bind(this))

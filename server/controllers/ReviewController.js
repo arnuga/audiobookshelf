@@ -48,6 +48,18 @@ class ReviewController {
   }
 
   /**
+   * GET: /api/items/:id/reviews
+   * Other users on this server who rated, reviewed, finished or started the book.
+   *
+   * @param {ReviewRequest} req
+   * @param {Response} res
+   */
+  async getOthers(req, res) {
+    const readers = await Database.userBookReviewModel.getReaderActivity(req.libraryItem.media.id, req.user.id)
+    res.json({ libraryItemId: req.libraryItem.id, readers })
+  }
+
+  /**
    * DELETE: /api/items/:id/review
    *
    * @param {ReviewRequest} req

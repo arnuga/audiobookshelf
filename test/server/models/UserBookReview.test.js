@@ -131,5 +131,92 @@ describe('UserBookReview', () => {
       expect(json.createdAt).to.be.a('number')
       expect(json.updatedAt).to.be.a('number')
     })
+
+    describe('getReaderActivity', () => {
+      let friend
+
+      async function createUser(username, extra = {}) {
+        return Database.userModel.create({ username, type: 'user', isActive: true, permissions: Database.userModel.getDefaultPermissionsForUserType('user'), ...extra })
+      }
+
+      function addProgress(userId, values) {
+        // silent keeps an explicit updatedAt instead of stamping the current time, so both timestamps are set here
+        const now = new Date()
+        return Database.mediaProgressModel.create({ userId, mediaItemId: book.id, mediaItemType: 'book', duration: 100, currentTime: 0, isFinished: false, createdAt: now, updatedAt: now, ...values }, { silent: true })
+      }
+
+      beforeEach(async () => {
+        friend = await createUser('friend')
+      })
+
+      it('returns an empty list when nobody else has touched the book', async () => {
+        expect(await UserBookReview.getReaderActivity(book.id, user.id)).to.deep.equal([])
+      })
+
+      it('leaves out the requesting user', async () => {
+        await UserBookReview.saveForUser(user.id, book.id, { rating: 5 })
+        await addProgress(user.id, { isFinished: true, finishedAt: new Date() })
+        expect(await UserBookReview.getReaderActivity(book.id, user.id)).to.deep.equal([])
+      })
+
+      it('includes another user’s rating and review', async () => {
+        await UserBookReview.saveForUser(friend.id, book.id, { rating: 4.5, review: 'Loved it' })
+        const [entry] = await UserBookReview.getReaderActivity(book.id, user.id)
+        expect(entry).to.include({ userId: friend.id, username: 'friend', rating: 4.5, review: 'Loved it', isFinished: false, progress: 0 })
+      })
+
+      it('includes a user who finished the book without reviewing it', async () => {
+        const finishedAt = new Date('2026-01-02T00:00:00Z')
+        await addProgress(friend.id, { currentTime: 100, isFinished: true, finishedAt })
+        const [entry] = await UserBookReview.getReaderActivity(book.id, user.id)
+        expect(entry).to.include({ userId: friend.id, rating: null, review: null, isFinished: true, finishedAt: finishedAt.valueOf(), progress: 1 })
+      })
+
+      it('includes a user part way through, with progress as a fraction', async () => {
+        await addProgress(friend.id, { currentTime: 25 })
+        const [entry] = await UserBookReview.getReaderActivity(book.id, user.id)
+        expect(entry).to.include({ isFinished: false, finishedAt: null, progress: 0.25 })
+      })
+
+      it('uses ebook progress when there is no listening progress', async () => {
+        await addProgress(friend.id, { duration: 0, ebookProgress: 0.4 })
+        const [entry] = await UserBookReview.getReaderActivity(book.id, user.id)
+        expect(entry.progress).to.equal(0.4)
+      })
+
+      it('merges a user’s review and progress into one entry', async () => {
+        await UserBookReview.saveForUser(friend.id, book.id, { rating: 3 })
+        await addProgress(friend.id, { currentTime: 100, isFinished: true, finishedAt: new Date() })
+        const activity = await UserBookReview.getReaderActivity(book.id, user.id)
+        expect(activity).to.have.length(1)
+        expect(activity[0]).to.include({ rating: 3, isFinished: true })
+      })
+
+      it('ignores progress rows that have not actually started', async () => {
+        await addProgress(friend.id, { currentTime: 0 })
+        expect(await UserBookReview.getReaderActivity(book.id, user.id)).to.deep.equal([])
+      })
+
+      it('ignores progress on other books', async () => {
+        const otherBook = await Database.bookModel.create({ title: 'Emma', audioFiles: [], tags: [], narrators: [], genres: [], chapters: [] })
+        await Database.mediaProgressModel.create({ userId: friend.id, mediaItemId: otherBook.id, mediaItemType: 'book', duration: 100, currentTime: 50 })
+        expect(await UserBookReview.getReaderActivity(book.id, user.id)).to.deep.equal([])
+      })
+
+      it('leaves out disabled users', async () => {
+        await friend.update({ isActive: false })
+        await UserBookReview.saveForUser(friend.id, book.id, { rating: 2 })
+        expect(await UserBookReview.getReaderActivity(book.id, user.id)).to.deep.equal([])
+      })
+
+      it('lists the most recent activity first', async () => {
+        const other = await createUser('other')
+        await UserBookReview.create({ userId: friend.id, bookId: book.id, rating: 3, updatedAt: new Date('2026-01-01T00:00:00Z') }, { silent: true })
+        await addProgress(other.id, { currentTime: 10, updatedAt: new Date('2026-03-01T00:00:00Z') })
+        const activity = await UserBookReview.getReaderActivity(book.id, user.id)
+        expect(activity.map((a) => a.username)).to.deep.equal(['other', 'friend'])
+        expect(activity[0].updatedAt).to.equal(new Date('2026-03-01T00:00:00Z').valueOf())
+      })
+    })
   })
 })

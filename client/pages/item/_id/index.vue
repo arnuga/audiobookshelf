@@ -131,6 +131,9 @@
             <button v-if="isDescriptionClamped" class="py-0.5 flex items-center text-slate-300 hover:text-white" @click="showFullDescription = !showFullDescription">{{ showFullDescription ? $strings.ButtonReadLess : $strings.ButtonReadMore }} <span class="material-symbols text-xl pl-1" v-html="showFullDescription ? 'expand_less' : '&#xe313;'" /></button>
           </div>
 
+          <!-- Fork addition: other users' ratings, reviews and progress -->
+          <widgets-other-readers v-if="!isPodcast" :library-item-id="libraryItemId" :date-format="dateFormat" class="mt-4" />
+
           <tables-chapters-table v-if="chapters.length" :library-item="libraryItem" class="mt-6" />
 
           <tables-tracks-table v-if="tracks.length" :title="$strings.LabelStatsAudioTracks" :tracks="tracksWithAudioFile" :is-file="isFile" :library-item-id="libraryItemId" class="mt-6" />

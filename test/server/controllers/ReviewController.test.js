@@ -57,6 +57,12 @@ describe('ReviewController', () => {
       const routes = apiRouter.router._router.stack.filter((l) => l.route?.path === '/items/:id/review').flatMap((l) => Object.keys(l.route.methods))
       expect(routes).to.have.members(['get', 'put', 'delete'])
     })
+
+    it('registers GET /items/:id/reviews behind the same middleware', () => {
+      const layers = apiRouter.router._router.stack.filter((l) => l.route?.path === '/items/:id/reviews')
+      expect(layers.flatMap((l) => Object.keys(l.route.methods))).to.deep.equal(['get'])
+      expect(layers[0].route.stack.map((s) => s.name)).to.deep.equal(['bound middleware', 'bound getOthers'])
+    })
   })
 
   describe('middleware', () => {
@@ -137,6 +143,21 @@ describe('ReviewController', () => {
       const res = fakeRes()
       await ReviewController.saveMine.bind(apiRouter)(await reqFor({ rating: null }), res)
       expect(res.json.calledWith(null)).to.be.true
+    })
+  })
+
+  describe('GET /items/:id/reviews', () => {
+    it('returns other readers’ activity on the book, not the current user’s', async () => {
+      const friend = await Database.userModel.create({ username: 'friend', type: 'user', isActive: true, permissions: Database.userModel.getDefaultPermissionsForUserType('user') })
+      await Database.userBookReviewModel.saveForUser(friend.id, book.id, { rating: 4, review: 'Great' })
+      await Database.userBookReviewModel.saveForUser(user.id, book.id, { rating: 1 })
+
+      const res = fakeRes()
+      await ReviewController.getOthers.bind(apiRouter)(await reqFor(), res)
+      const body = res.json.firstCall.args[0]
+      expect(body.libraryItemId).to.equal(libraryItem.id)
+      expect(body.readers).to.have.length(1)
+      expect(body.readers[0]).to.include({ userId: friend.id, username: 'friend', rating: 4, review: 'Great' })
     })
   })
 

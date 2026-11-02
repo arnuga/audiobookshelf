@@ -1,4 +1,4 @@
-const { DataTypes, Model } = require('sequelize')
+const { DataTypes, Model, Op } = require('sequelize')
 
 /**
  * A user's own rating and review of a book.
@@ -87,6 +87,68 @@ class UserBookReview extends Model {
 
     if (existing) return existing.update(merged)
     return this.create({ userId, bookId, ...merged })
+  }
+
+  /**
+   * Other users' activity on a book: their rating and review, and whether they finished it or how far they got.
+   * One entry per active user who reviewed the book or started it, most recent first.
+   *
+   * @param {string} bookId
+   * @param {string} excludeUserId the requesting user, who sees their own activity elsewhere
+   * @returns {Promise<ReaderActivity[]>}
+   *
+   * @typedef ReaderActivity
+   * @property {string} userId
+   * @property {string} username
+   * @property {number|null} rating
+   * @property {string|null} review
+   * @property {boolean} isFinished
+   * @property {number|null} finishedAt
+   * @property {number} progress 0-1
+   * @property {number} updatedAt
+   */
+  static async getReaderActivity(bookId, excludeUserId) {
+    const { user: userModel, mediaProgress: mediaProgressModel } = this.sequelize.models
+    const activeUser = { model: userModel, attributes: ['id', 'username'], where: { isActive: true, id: { [Op.ne]: excludeUserId } } }
+
+    const [reviews, progresses] = await Promise.all([
+      this.findAll({ where: { bookId }, include: activeUser }),
+      mediaProgressModel.findAll({
+        where: {
+          mediaItemId: bookId,
+          [Op.or]: [{ isFinished: true }, { currentTime: { [Op.gt]: 0 } }, { ebookProgress: { [Op.gt]: 0 } }]
+        },
+        include: activeUser
+      })
+    ])
+
+    /** @type {Map<string, ReaderActivity>} */
+    const byUser = new Map()
+    const entryFor = (user) => {
+      if (!byUser.has(user.id)) {
+        byUser.set(user.id, { userId: user.id, username: user.username, rating: null, review: null, isFinished: false, finishedAt: null, progress: 0, updatedAt: 0 })
+      }
+      return byUser.get(user.id)
+    }
+
+    for (const review of reviews) {
+      const entry = entryFor(review.user)
+      entry.rating = review.rating
+      entry.review = review.review
+      entry.updatedAt = Math.max(entry.updatedAt, review.updatedAt.valueOf())
+    }
+
+    for (const progress of progresses) {
+      const entry = entryFor(progress.user)
+      entry.isFinished = !!progress.isFinished
+      entry.finishedAt = progress.finishedAt?.valueOf() ?? null
+      if (progress.isFinished) entry.progress = 1
+      else if (progress.duration > 0) entry.progress = Math.min(1, progress.currentTime / progress.duration)
+      else entry.progress = progress.ebookProgress || 0
+      entry.updatedAt = Math.max(entry.updatedAt, progress.updatedAt.valueOf())
+    }
+
+    return [...byUser.values()].sort((a, b) => b.updatedAt - a.updatedAt)
   }
 
   /**
