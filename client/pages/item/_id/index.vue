@@ -122,6 +122,9 @@
             </ui-context-menu-dropdown>
           </div>
 
+          <!-- Fork addition: the current user's rating and review -->
+          <widgets-my-review v-if="!isPodcast" :library-item-id="libraryItemId" class="mt-4" />
+
           <div class="my-4 w-full">
             <div ref="description" id="item-description" dir="auto" role="paragraph" class="default-style less-spacing text-base text-gray-100 whitespace-pre-line mb-1" :class="{ 'show-full': showFullDescription }" v-html="description" />
 

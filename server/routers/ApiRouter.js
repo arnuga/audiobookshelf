@@ -19,6 +19,7 @@ const PlaylistController = require('../controllers/PlaylistController')
 const MeController = require('../controllers/MeController')
 const BackupController = require('../controllers/BackupController')
 const LibraryItemController = require('../controllers/LibraryItemController')
+const ReviewController = require('../controllers/ReviewController')
 const SeriesController = require('../controllers/SeriesController')
 const FileSystemController = require('../controllers/FileSystemController')
 const AuthorController = require('../controllers/AuthorController')
@@ -114,6 +115,12 @@ class ApiRouter {
     this.router.patch('/items/:id/cover', LibraryItemController.middleware.bind(this), LibraryItemController.updateCover.bind(this))
     this.router.delete('/items/:id/cover', LibraryItemController.middleware.bind(this), LibraryItemController.removeCover.bind(this))
     this.router.post('/items/:id/match', LibraryItemController.middleware.bind(this), LibraryItemController.match.bind(this))
+
+    // Fork addition: the current user's rating and review
+    this.router.get('/items/:id/review', ReviewController.middleware.bind(this), ReviewController.getMine.bind(this))
+    this.router.put('/items/:id/review', ReviewController.middleware.bind(this), ReviewController.saveMine.bind(this))
+    this.router.delete('/items/:id/review', ReviewController.middleware.bind(this), ReviewController.deleteMine.bind(this))
+
     this.router.post('/items/:id/play', LibraryItemController.middleware.bind(this), LibraryItemController.startPlaybackSession.bind(this))
     this.router.post('/items/:id/play/:episodeId', LibraryItemController.middleware.bind(this), LibraryItemController.startEpisodePlaybackSession.bind(this))
     this.router.patch('/items/:id/tracks', LibraryItemController.middleware.bind(this), LibraryItemController.updateTracks.bind(this))
