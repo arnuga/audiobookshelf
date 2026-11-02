@@ -56,5 +56,20 @@ Client component tests live in `client/cypress/tests/components/**`; `cy.get('&n
 5. Hardcover two-way sync of ratings and reviews, plus Hardcover friends.
 6. Goodreads friends with public profiles via shelf RSS.
 
+## Deployment (Synology NAS)
+
+Runs as container `audiobookshelf-fork` on the Synology at 192.168.88.194 (x86_64, Container Manager).
+`ssh djshultz@192.168.88.194` uses this PC's `id_ed25519` key; djshultz is in the `docker` group
+(prefix remote commands with `export PATH=$PATH:/usr/local/bin`).
+
+- Port 13378 -> 80; `/volume1/docker/audiobookshelf` -> `/config`, `/volume1/metadata/audiobookshelf` -> `/metadata`,
+  `/volume2/audiobooks` -> `/audiobooks`; restart always; `JWT_SECRET_KEY` env (copy from the running container, never hard-code).
+- Update: `docker build --platform linux/amd64 -t audiobookshelf-fork:ratings-reviews -t audiobookshelf-fork:<sha> .`,
+  `docker save ... | gzip`, copy and `docker load` on the NAS, back up config + metadata to
+  `/volume1/docker/backups/audiobookshelf-<date>-<reason>/` with the container stopped, then recreate the container.
+  Get the user's OK before stopping or replacing the live container.
+- The original upstream container `audiobookshelf` (advplyr/audiobookshelf) is kept stopped with restart=no as a fallback.
+  First swap backup: `/volume1/docker/backups/audiobookshelf-2026-11-02-pre-fork/`.
+
 ## About the user
 Likes analogies when learning new concepts, prefers newer tech, and wants things correct or easy.
