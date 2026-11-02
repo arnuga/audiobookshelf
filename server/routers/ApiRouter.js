@@ -20,6 +20,7 @@ const MeController = require('../controllers/MeController')
 const BackupController = require('../controllers/BackupController')
 const LibraryItemController = require('../controllers/LibraryItemController')
 const ReviewController = require('../controllers/ReviewController')
+const GoodreadsController = require('../controllers/GoodreadsController')
 const SeriesController = require('../controllers/SeriesController')
 const FileSystemController = require('../controllers/FileSystemController')
 const AuthorController = require('../controllers/AuthorController')
@@ -122,6 +123,9 @@ class ApiRouter {
     this.router.delete('/items/:id/review', ReviewController.middleware.bind(this), ReviewController.deleteMine.bind(this))
     // Fork addition: other users' ratings, reviews and progress on a book
     this.router.get('/items/:id/reviews', ReviewController.middleware.bind(this), ReviewController.getOthers.bind(this))
+    // Fork addition: Goodreads CSV import and export of the current user's library
+    this.router.post('/me/goodreads/import', GoodreadsController.importCsv.bind(this))
+    this.router.get('/me/goodreads/export', GoodreadsController.exportCsv.bind(this))
 
     this.router.post('/items/:id/play', LibraryItemController.middleware.bind(this), LibraryItemController.startPlaybackSession.bind(this))
     this.router.post('/items/:id/play/:episodeId', LibraryItemController.middleware.bind(this), LibraryItemController.startEpisodePlaybackSession.bind(this))

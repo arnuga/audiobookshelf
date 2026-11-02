@@ -69,6 +69,15 @@
         </app-settings-content>
       </div>
 
+      <!-- Fork addition: Goodreads import and export -->
+      <div v-if="!isGuest">
+        <div class="w-full h-px bg-white/10 my-4" />
+
+        <app-settings-content :header-text="$strings.HeaderGoodreads">
+          <widgets-goodreads-sync />
+        </app-settings-content>
+      </div>
+
       <div v-if="!isGuest">
         <div class="w-full h-px bg-white/10 my-4" />
 

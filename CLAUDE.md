@@ -50,9 +50,20 @@ Client component tests live in `client/cypress/tests/components/**`; `cy.get('&n
 - Every user who can open a book sees every other active user's activity on it. There is no opt-out yet.
 - Totals: 407 server tests, 122 client component tests.
 
+### Phases 3 and 4: Goodreads CSV import and export (done, branch `ratings-reviews`)
+- `server/utils/goodreads.js`: CSV parser, Goodreads export parser, ISBN-10/13 normalizer, matcher, import-file writer.
+  Matching: ISBN (book.isbn, plus book.asin when it is an ISBN-10), then normalized title + exact normalized author;
+  more than one candidate is reported as ambiguous, never guessed.
+- `server/controllers/GoodreadsController.js`:
+  `POST /api/me/goodreads/import { csv, apply }` previews unless `apply: true`. Fills gaps only: existing ratings/reviews
+  are kept (reported as notes), finished books keep their date, only the `read` shelf marks finished
+  (date read, else date added). Idempotent. Only books the user can access are matched.
+  `GET /api/me/goodreads/export`: rated, reviewed, finished or started books; half stars round up.
+- `client/components/widgets/GoodreadsSync.vue` in a Goodreads section on `client/pages/account.vue` (not for guests).
+- Not done: Goodreads shelf RSS import (needs a profile URL setting and a scheduled fetch).
+- Totals: 437 server tests, 128 client component tests.
+
 ### Next phases
-3. Goodreads import (CSV export / shelf RSS), matched by ISBN → ASIN → title + author.
-4. Goodreads export as an import-ready CSV.
 5. Hardcover two-way sync of ratings and reviews, plus Hardcover friends.
 6. Goodreads friends with public profiles via shelf RSS.
 
