@@ -63,8 +63,29 @@ Client component tests live in `client/cypress/tests/components/**`; `cy.get('&n
 - Not done: Goodreads shelf RSS import (needs a profile URL setting and a scheduled fetch).
 - Totals: 437 server tests, 128 client component tests.
 
+### Phase 5: Hardcover two-way sync and Hardcover friends (done, branch `ratings-reviews`)
+- Uses the official `@hardcover/sdk` (pinned 0.1.1, ESM, loaded with `require` on Node 24). It paces to the
+  rate limit and retries reads. Docs: docs.hardcover.app (API, SDK); the raw docs live in github.com/hardcoverapp/hardcover-docs.
+- Auth: each user pastes their own personal access token on the Account page (user's choice over OAuth).
+  The "create a token" link pre-checks scopes `read:me:content read:library write:library write:reviews read:catalog read:social`.
+  Tokens are stored in `hardcoverAccounts` and never returned to the client.
+- `server/utils/hardcoverSync.js` `planMerge`: three-way merge per field (rating, review) against the values both sides
+  held at the last sync (`hardcoverBookLinks.syncedRating/syncedReview`). One side changed: that side wins. Both changed,
+  or first sync with two different values: the newer edit wins. First sync otherwise fills gaps both ways.
+- `server/utils/hardcoverApi.js`: thin adapter over the SDK (`libraryChanges` cursor feed, `entryForBook`,
+  `findBookIdsByIsbn`, `addEntry` as Read + `imported: true`, `updateEntry`, `friends`). Tested with the SDK's `MockTransport`.
+- `server/managers/HardcoverSyncManager.js`: reads the change feed since the stored cursor, matches entries to library books
+  (existing link, else ISBN, else title + author via `goodreads.createMatcher`), adds ABS reviews that differ from the
+  last sync, looks up unlinked books by ISBN, merges, writes both sides. Status/progress is never changed (ShelfBridge).
+  Runs hourly (`23 * * * *`), 10 s after a review save/delete (debounced), and via Sync now. One run per user at a time.
+- `server/controllers/HardcoverController.js`: `GET|PUT|DELETE /api/me/hardcover`, `POST /api/me/hardcover/sync`,
+  `GET /api/items/:id/hardcover-friends` (cached 1 h per user and book).
+- Client: `widgets/HardcoverAccount.vue` on the Account page, `widgets/HardcoverFriends.vue` on the book page.
+- `server/utils/accessibleBooks.js` holds `loadAccessibleBooks`, shared with the Goodreads import.
+- Not verified against the live Hardcover API yet (all tests use fakes or MockTransport).
+- Totals: 499 server tests, 141 client component tests.
+
 ### Next phases
-5. Hardcover two-way sync of ratings and reviews, plus Hardcover friends.
 6. Goodreads friends with public profiles via shelf RSS.
 
 ## Deployment (Synology NAS)

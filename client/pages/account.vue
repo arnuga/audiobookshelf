@@ -78,6 +78,15 @@
         </app-settings-content>
       </div>
 
+      <!-- Fork addition: Hardcover sync of ratings and reviews -->
+      <div v-if="!isGuest">
+        <div class="w-full h-px bg-white/10 my-4" />
+
+        <app-settings-content :header-text="$strings.HeaderHardcover">
+          <widgets-hardcover-account :date-format="dateFormat" :time-format="timeFormat" />
+        </app-settings-content>
+      </div>
+
       <div v-if="!isGuest">
         <div class="w-full h-px bg-white/10 my-4" />
 

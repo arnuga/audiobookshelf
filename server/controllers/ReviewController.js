@@ -1,6 +1,7 @@
 const { Request, Response, NextFunction } = require('express')
 const Logger = require('../Logger')
 const Database = require('../Database')
+const HardcoverController = require('./HardcoverController')
 
 /**
  * @typedef RequestUserObject
@@ -44,6 +45,7 @@ class ReviewController {
       return res.status(400).send(payload.error)
     }
     const review = await Database.userBookReviewModel.saveForUser(req.user.id, req.libraryItem.media.id, payload)
+    HardcoverController.syncManager.scheduleSync(req.user.id)
     res.json(review ? review.toJSONForAPI(req.libraryItem.id) : null)
   }
 
@@ -69,6 +71,7 @@ class ReviewController {
     await Database.userBookReviewModel.destroy({
       where: { userId: req.user.id, bookId: req.libraryItem.media.id }
     })
+    HardcoverController.syncManager.scheduleSync(req.user.id)
     res.sendStatus(200)
   }
 

@@ -133,6 +133,8 @@
 
           <!-- Fork addition: other users' ratings, reviews and progress -->
           <widgets-other-readers v-if="!isPodcast" :library-item-id="libraryItemId" :date-format="dateFormat" class="mt-4" />
+          <!-- Fork addition: ratings and reviews of people the user follows on Hardcover -->
+          <widgets-hardcover-friends v-if="!isPodcast" :library-item-id="libraryItemId" class="mt-4" />
 
           <tables-chapters-table v-if="chapters.length" :library-item="libraryItem" class="mt-6" />
 

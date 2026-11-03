@@ -206,6 +206,8 @@ class Server {
 
     const libraries = await Database.libraryModel.getAllWithFolders()
     await this.cronManager.init(libraries)
+    // Fork addition: hourly Hardcover sync of ratings and reviews
+    require('./controllers/HardcoverController').syncManager.init()
     this.apiCacheManager.init()
 
     if (Database.serverSettings.scannerDisableWatcher) {

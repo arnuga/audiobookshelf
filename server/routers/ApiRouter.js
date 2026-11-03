@@ -21,6 +21,7 @@ const BackupController = require('../controllers/BackupController')
 const LibraryItemController = require('../controllers/LibraryItemController')
 const ReviewController = require('../controllers/ReviewController')
 const GoodreadsController = require('../controllers/GoodreadsController')
+const HardcoverController = require('../controllers/HardcoverController')
 const SeriesController = require('../controllers/SeriesController')
 const FileSystemController = require('../controllers/FileSystemController')
 const AuthorController = require('../controllers/AuthorController')
@@ -126,6 +127,12 @@ class ApiRouter {
     // Fork addition: Goodreads CSV import and export of the current user's library
     this.router.post('/me/goodreads/import', GoodreadsController.importCsv.bind(this))
     this.router.get('/me/goodreads/export', GoodreadsController.exportCsv.bind(this))
+    // Fork addition: Hardcover sync of ratings and reviews, and friends' entries for a book
+    this.router.get('/me/hardcover', HardcoverController.getAccount.bind(this))
+    this.router.put('/me/hardcover', HardcoverController.connect.bind(this))
+    this.router.delete('/me/hardcover', HardcoverController.disconnect.bind(this))
+    this.router.post('/me/hardcover/sync', HardcoverController.syncNow.bind(this))
+    this.router.get('/items/:id/hardcover-friends', ReviewController.middleware.bind(this), HardcoverController.getFriends.bind(this))
 
     this.router.post('/items/:id/play', LibraryItemController.middleware.bind(this), LibraryItemController.startPlaybackSession.bind(this))
     this.router.post('/items/:id/play/:episodeId', LibraryItemController.middleware.bind(this), LibraryItemController.startEpisodePlaybackSession.bind(this))

@@ -162,6 +162,17 @@ class Database {
     return this.models.userBookReview
   }
 
+  // Fork addition: Hardcover sync
+  /** @type {typeof import('./models/HardcoverAccount')} */
+  get hardcoverAccountModel() {
+    return this.models.hardcoverAccount
+  }
+
+  /** @type {typeof import('./models/HardcoverBookLink')} */
+  get hardcoverBookLinkModel() {
+    return this.models.hardcoverBookLink
+  }
+
   /**
    * Check if db file exists
    * @returns {boolean}
@@ -346,6 +357,9 @@ class Database {
     require('./models/CustomMetadataProvider').init(this.sequelize)
     require('./models/MediaItemShare').init(this.sequelize)
     require('./models/UserBookReview').init(this.sequelize)
+    // Fork addition: Hardcover sync
+    require('./models/HardcoverAccount').init(this.sequelize)
+    require('./models/HardcoverBookLink').init(this.sequelize)
 
     return this.sequelize.sync({ force, alter: false })
   }
